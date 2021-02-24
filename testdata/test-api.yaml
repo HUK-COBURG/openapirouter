@@ -1,0 +1,70 @@
+openapi: 3.0.3
+info:
+  title: Test-API
+  description: Only used for testing purposes
+  version: 1.0.0
+paths:
+  /test:
+    get:
+      responses:
+        200:
+          description: "Successful"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestData'
+    post:
+      requestBody:
+        description: "TestData"
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestData'
+      responses:
+        204:
+          description: "Successful"
+  /test/pathParams/{param}:
+    get:
+      parameters:
+        - in: path
+          name: param
+          schema:
+            $ref: '#/components/schemas/TestEnum'
+      responses:
+        200:
+          description: "Successful"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestData'
+  /test/query:
+    get:
+      parameters:
+        - in: query
+          name: param
+          schema:
+            $ref: '#/components/schemas/TestEnum'
+          required: true
+      responses:
+        200:
+          description: "Successful"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestData'
+components:
+  schemas:
+    TestEnum:
+      type: string
+      enum:
+        - "value1"
+        - "value2"
+    TestData:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: string
+          example: "test"
+          description: "just a test"
