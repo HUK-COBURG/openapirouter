@@ -1,3 +1,6 @@
+[![Go](https://github.com/HUK-COBURG/openapirouter/actions/workflows/go.yml/badge.svg)](https://github.com/HUK-COBURG/openapirouter/actions/workflows/go.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/huk-coburg/openapirouter)](https://goreportcard.com/report/github.com/huk-coburg/openapirouter)
+
 # OpenAPI-Router
 The OpenAPI-Router is a "Contract-First" http-Router, specifically designed for JSON-based REST-Services. It takes an
 [OpenAPI schema](https://swagger.io/specification/) as input to create the router. The router validates requests and 
