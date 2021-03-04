@@ -9,32 +9,28 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.15
+      - uses: actions/checkout@v2
 
-    - name: go mod download/tidy/verify
-    - run: go mod download && go mod tidy && go mod verify
-    - run: git --no-pager diff && [[ $(git --no-pager diff --name-only | wc -l) = 0 ]]
-      shell: bash
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
 
-    - name: go vet
-    - run: go vet ./...
-    - run: git --no-pager diff && [[ $(git --no-pager diff --name-only | wc -l) = 0 ]]
-      shell: bash
-      
-    - name: go fmt
-    - run: go fmt ./...
-    - run: git --no-pager diff && [[ $(git --no-pager diff --name-only | wc -l) = 0 ]]
-      shell: bash
+      - run: go mod download && go mod tidy && go mod verify
+      - run: git --no-pager diff && [[ $(git --no-pager diff --name-only | wc -l) = 0 ]]
+        shell: bash
 
-    - name: go test
-    - run: go test ./...
-    - run: git --no-pager diff && [[ $(git --no-pager diff --name-only | wc -l) = 0 ]]
-      shell: bash
-    
-    - name: go build
-    - run: go build -v ./...
+      - run: go vet ./...
+      - run: git --no-pager diff && [[ $(git --no-pager diff --name-only | wc -l) = 0 ]]
+        shell: bash
+
+      - run: go fmt ./...
+      - run: git --no-pager diff && [[ $(git --no-pager diff --name-only | wc -l) = 0 ]]
+        shell: bash
+
+      - run: go test ./...
+      - run: git --no-pager diff && [[ $(git --no-pager diff --name-only | wc -l) = 0 ]]
+        shell: bash
+
+      - run: go build -v ./...
