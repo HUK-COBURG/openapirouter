@@ -36,7 +36,7 @@ func (router *Router) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 	var response *Response
 	route, pathParams, err := router.baseRouter.FindRoute(request.Method, request.URL)
 	if err != nil {
-		if err.Error() == "Path doesn't support the HTTP method" {
+		if err.Error() == openapi3filter.ErrMethodNotAllowed.Error() {
 			response = NewHTTPError(http.StatusMethodNotAllowed, err.Error()).ToResponse()
 		} else {
 			response = NewHTTPError(http.StatusNotFound, err.Error()).ToResponse()
@@ -55,7 +55,7 @@ func (router *Router) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 		if err != nil {
 			requestError := &openapi3filter.RequestError{}
 			if errors.As(err, &requestError) {
-				response = NewHTTPError(requestError.HTTPStatus(), requestError.Error()).ToResponse()
+				response = NewHTTPError(http.StatusBadRequest, requestError.Error()).ToResponse()
 			} else {
 				response = NewHTTPError(http.StatusInternalServerError, "error validating request").ToResponse()
 			}
