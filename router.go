@@ -5,17 +5,19 @@ import (
 	"errors"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/getkin/kin-openapi/routers"
+	"github.com/getkin/kin-openapi/routers/gorillamux"
 	"log"
 	"net/http"
-	"net/url"
 	"reflect"
 )
 
 // The Router which implements the described features. It implements http.Handler to be compatible with existing HTTP
 // libraries.
 type Router struct {
-	baseRouter *openapi3filter.Router
-	errMapper  *errorMapper
+	baseRouter      routers.Router
+	errMapper       *errorMapper
+	implementations map[*routers.Route]requestHandler
 }
 
 // Creates a new Router with the path of a OpenAPI specification file in YAML or JSON format.
@@ -24,9 +26,14 @@ func NewRouter(swaggerPath string) (*Router, error) {
 	if err != nil {
 		return nil, err
 	}
+	router, err := gorillamux.NewRouter(swagger)
+	if err != nil {
+		return nil, err
+	}
 	return &Router{
-		baseRouter: openapi3filter.NewRouter().WithSwagger(swagger),
-		errMapper:  &errorMapper{errorMapping: make(map[reflect.Type]*HTTPError)},
+		baseRouter:      router,
+		errMapper:       &errorMapper{errorMapping: make(map[reflect.Type]*HTTPError)},
+		implementations: make(map[*routers.Route]requestHandler),
 	}, nil
 }
 
@@ -34,9 +41,9 @@ func NewRouter(swaggerPath string) (*Router, error) {
 // also adds the pathParameters to the requests Context so they can be extracted by the requestHandler
 func (router *Router) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	var response *Response
-	route, pathParams, err := router.baseRouter.FindRoute(request.Method, request.URL)
+	route, pathParams, err := router.baseRouter.FindRoute(request)
 	if err != nil {
-		if err.Error() == openapi3filter.ErrMethodNotAllowed.Error() {
+		if err.Error() == routers.ErrMethodNotAllowed.Error() {
 			response = NewHTTPError(http.StatusMethodNotAllowed, err.Error()).ToResponse()
 		} else {
 			response = NewHTTPError(http.StatusNotFound, err.Error()).ToResponse()
@@ -44,8 +51,8 @@ func (router *Router) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 		response.write(writer)
 		return
 	}
-	switch handler := route.Handler.(type) {
-	case *requestHandler:
+	handler, ok := router.implementations[route]
+	if ok {
 		err = openapi3filter.ValidateRequest(context.Background(), &openapi3filter.RequestValidationInput{
 			Request:     request,
 			PathParams:  pathParams,
@@ -64,25 +71,25 @@ func (router *Router) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 		}
 		ctx := context.WithValue(request.Context(), pathParamsKey, pathParams)
 		handler.ServeHTTP(writer, request.WithContext(ctx))
-	default:
+	} else {
 		response = NewHTTPError(http.StatusNotImplemented).ToResponse()
 		response.write(writer)
-		return
 	}
 }
 
 // AddRequestHandler creates a new requestHandler for a specified method and path. It is used to set an implementation
 // for an endpoint. The function panics, if the endpoint is not specified in the OpenAPI specification
 func (router *Router) AddRequestHandler(method string, path string, handleFunc HandleRequestFunction) {
-	pathUrl, err := url.Parse(path)
+	request, err := http.NewRequest(method, path, nil)
 	if err != nil {
 		log.Panicln(err)
 	}
-	route, _, err := router.baseRouter.FindRoute(method, pathUrl)
+	route, _, err := router.baseRouter.FindRoute(request)
 	if err != nil {
 		log.Panicln(err)
 	}
-	route.Handler = &requestHandler{
+
+	router.implementations[route] = requestHandler{
 		errMapper:       router.errMapper,
 		handlerFunction: handleFunc,
 	}

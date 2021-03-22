@@ -1,5 +1,6 @@
 [![Go](https://github.com/HUK-COBURG/openapirouter/actions/workflows/go.yml/badge.svg)](https://github.com/HUK-COBURG/openapirouter/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/huk-coburg/openapirouter)](https://goreportcard.com/report/github.com/huk-coburg/openapirouter)
+[![GoDoc](https://godoc.org/github.com/huk-coburg/openapirouter?status.svg)](https://godoc.org/github.com/huk-coburg/openapirouter)
 
 # OpenAPI-Router
 The OpenAPI-Router is a "Contract-First" http-Router, specifically designed for JSON-based REST-Services. It takes an
@@ -27,7 +28,7 @@ The router is created using the following `NewRouter` function with the path of 
 To enable the automatic response writing and error mapping, a custom handler function different from the standard 
 `http.HandlerFunc` is used for the implementation of endpoints. The following function signature is used:  
 ```go
-func(request *http.Request, pathParamerters map[string]string) (*Response, error)
+func(request *http.Request, pathParamerters map[string]string) (*openapirouter.Response, error)
 ```  
 The parameters are:
 - **request:** The pointer to the http.Request as in the standard `http.HandlerFunc`. It can be used to extract the 
