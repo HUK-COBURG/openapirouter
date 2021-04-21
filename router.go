@@ -2,7 +2,6 @@ package openapirouter
 
 import (
 	"context"
-	"errors"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
@@ -20,7 +19,7 @@ type Router struct {
 	implementations map[*routers.Route]requestHandler
 }
 
-// Creates a new Router with the path of a OpenAPI specification file in YAML or JSON format.
+// NewRouter creates a new Router with the path of a OpenAPI specification file in YAML or JSON format.
 func NewRouter(swaggerPath string) (*Router, error) {
 	swagger, err := openapi3.NewSwaggerLoader().LoadSwaggerFromFile(swaggerPath)
 	if err != nil {
@@ -58,12 +57,19 @@ func (router *Router) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 			PathParams:  pathParams,
 			QueryParams: request.URL.Query(),
 			Route:       route,
+			Options:     handler.options,
 		})
 		if err != nil {
-			requestError := &openapi3filter.RequestError{}
-			if errors.As(err, &requestError) {
-				response = NewHTTPError(http.StatusBadRequest, requestError.Error()).ToResponse()
-			} else {
+			switch typedErr := err.(type) {
+			case *openapi3filter.RequestError:
+				response = NewHTTPError(http.StatusBadRequest, err.Error()).ToResponse()
+			case *openapi3filter.SecurityRequirementsError:
+				status := http.StatusUnauthorized
+				if len(typedErr.Errors) > 0 && typedErr.Errors[0] == openapi3filter.ErrAuthenticationServiceMissing {
+					status = http.StatusInternalServerError
+				}
+				response = NewHTTPError(status, "request could not be authorized").ToResponse()
+			default:
 				response = NewHTTPError(http.StatusInternalServerError, "error validating request").ToResponse()
 			}
 			response.write(writer)
@@ -80,6 +86,16 @@ func (router *Router) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 // AddRequestHandler creates a new requestHandler for a specified method and path. It is used to set an implementation
 // for an endpoint. The function panics, if the endpoint is not specified in the OpenAPI specification
 func (router *Router) AddRequestHandler(method string, path string, handleFunc HandleRequestFunction) {
+	router.AddRequestHandlerWithAuthFunc(method, path, handleFunc, nil)
+}
+
+// AddRequestHandlerWithAuthFunc creates a new requestHandler for a specified method and path. It is used to set an
+// implementation for an endpoint. The function panics, if the endpoint is not specified in the OpenAPI specification.
+// In Addition to AddRequestHandler adds an openapi3filter.AuthenticationFunc which is necessary to validate a request
+// with specified SecurityRequirements. If SecurityRequirements are specified for a resource without
+// openapi3filter.AuthenticationFunc, the router will respond with http.StatusInternalServerError.
+func (router *Router) AddRequestHandlerWithAuthFunc(method string, path string, handleFunc HandleRequestFunction,
+	authFunc openapi3filter.AuthenticationFunc) {
 	request, err := http.NewRequest(method, path, nil)
 	if err != nil {
 		log.Panicln(err)
@@ -89,9 +105,16 @@ func (router *Router) AddRequestHandler(method string, path string, handleFunc H
 		log.Panicln(err)
 	}
 
+	options := &openapi3filter.Options{}
+
+	if authFunc != nil {
+		options.AuthenticationFunc = authFunc
+	}
+
 	router.implementations[route] = requestHandler{
 		errMapper:       router.errMapper,
 		handlerFunction: handleFunc,
+		options:         options,
 	}
 }
 

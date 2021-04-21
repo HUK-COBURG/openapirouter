@@ -1,10 +1,13 @@
 package openapirouter
 
 import (
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"net/http"
 )
 
-const pathParamsKey = "pathParams"
+type contextKey int
+
+const pathParamsKey contextKey = iota
 
 // HandleRequestFunction is a custom function to specify the implementation of an HTTP endpoint. It does not receive the
 // http.ResponseWriter for the request since it is written by the requestHandler. The content of this response is
@@ -18,6 +21,7 @@ type HandleRequestFunction = func(*http.Request, map[string]string) (*Response, 
 type requestHandler struct {
 	errMapper       *errorMapper
 	handlerFunction HandleRequestFunction
+	options         *openapi3filter.Options
 }
 
 // implementation of http.Handler that extracts the pathParameters from the request's context and invokes the
