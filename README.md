@@ -41,6 +41,10 @@ The parameters are:
 
 The `AddRequestHandler` function of the router is used to add a function for a specific path and method to the router.
 
+If an endpoint defines a security requirement, `AddRequestHandlerWithAuthFunc` must be used in order to enable the 
+router to check if the user is authorized to access the endpoint. Using the `openapi3filter.NoopAuthenticationFunc` 
+as `authFunc` will grant access for any request without further checks. 
+
 ### Error handling
 If the handler function returns an error, it will be mapped to a corresponding response. Therefore, a custom `HTTPError`
 is used and returned as a JSON response. It contains the following fields:
@@ -126,6 +130,7 @@ func main() {
 		panic(err)
 	}
 	// Add implementation for endpoint specified in OpenAPI specification
+	// Use router.AddRequestHandlerWithAuthFunc if the endpoint defines security requirements
 	router.AddRequestHandler(http.MethodGet, "/test/{client}", HandleRequest)
 	// Add error mapping for MyCustomError
 	router.AddErrorMapping(&MyCustomError{}, http.StatusBadGateway, "could not load data")
