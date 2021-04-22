@@ -2,7 +2,10 @@ package openapirouter
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -263,6 +266,71 @@ func TestRouter_NotImplementedPath(t *testing.T) {
 	assert.Nil(t, err)
 	if assert.NotNil(t, res) {
 		assert.Equal(t, http.StatusNotImplemented, res.StatusCode)
+	}
+}
+
+func TestRouter_SecuredPath_AllowingAuthFunc(t *testing.T) {
+	// given
+	router, server := getRouterAndServer()
+	defer server.Close()
+	router.AddRequestHandlerWithAuthFunc("GET", "/test/secured", func(_ *http.Request, _ map[string]string) (*Response, error) {
+		return &Response{
+			StatusCode: http.StatusOK,
+		}, nil
+	}, openapi3filter.NoopAuthenticationFunc)
+	// when
+	res, err := server.Client().Get(server.URL + "/test/secured")
+
+	// then
+	assert.Nil(t, err)
+	if assert.NotNil(t, res) {
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+	}
+}
+
+func TestRouter_SecuredPath_DenyingAuthFunc(t *testing.T) {
+	// given
+	router, server := getRouterAndServer()
+	defer server.Close()
+	called := false
+	router.AddRequestHandlerWithAuthFunc("GET", "/test/secured", func(_ *http.Request, _ map[string]string) (*Response, error) {
+		called = true
+		return &Response{
+			StatusCode: http.StatusOK,
+		}, nil
+	}, func(_x context.Context, _ *openapi3filter.AuthenticationInput) error {
+		return errors.New("not authorized")
+	})
+	// when
+	res, err := server.Client().Get(server.URL + "/test/secured")
+
+	// then
+	assert.Nil(t, err)
+	assert.False(t, called)
+	if assert.NotNil(t, res) {
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	}
+}
+
+func TestRouter_SecuredPath_NoAuthFunc(t *testing.T) {
+	// given
+	router, server := getRouterAndServer()
+	defer server.Close()
+	called := false
+	router.AddRequestHandler("GET", "/test/secured", func(_ *http.Request, _ map[string]string) (*Response, error) {
+		called = true
+		return &Response{
+			StatusCode: http.StatusOK,
+		}, nil
+	})
+	// when
+	res, err := server.Client().Get(server.URL + "/test/secured")
+
+	// then
+	assert.Nil(t, err)
+	assert.False(t, called)
+	if assert.NotNil(t, res) {
+		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 	}
 }
 

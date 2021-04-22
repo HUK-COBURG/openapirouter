@@ -52,6 +52,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TestData'
+  /test/secured:
+    get:
+      security:
+        - apiKey: []
+      responses:
+        200:
+          description: "Successful"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestData'
 components:
   schemas:
     TestEnum:
@@ -68,3 +79,8 @@ components:
           type: string
           example: "test"
           description: "just a test"
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      name: x-api-key
+      in: header
