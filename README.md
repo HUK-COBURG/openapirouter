@@ -1,4 +1,5 @@
 [![Go](https://github.com/HUK-COBURG/openapirouter/actions/workflows/go.yml/badge.svg)](https://github.com/HUK-COBURG/openapirouter/actions/workflows/go.yml)
+[![CodeQL](https://github.com/HUK-COBURG/openapirouter/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/HUK-COBURG/openapirouter/actions/workflows/codeql-analysis.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/huk-coburg/openapirouter)](https://goreportcard.com/report/github.com/huk-coburg/openapirouter)
 [![GoDoc](https://godoc.org/github.com/huk-coburg/openapirouter?status.svg)](https://godoc.org/github.com/huk-coburg/openapirouter)
 
