@@ -21,7 +21,7 @@ type Router struct {
 
 // NewRouter creates a new Router with the path of a OpenAPI specification file in YAML or JSON format.
 func NewRouter(swaggerPath string) (*Router, error) {
-	swagger, err := openapi3.NewSwaggerLoader().LoadSwaggerFromFile(swaggerPath)
+	swagger, err := openapi3.NewLoader().LoadFromFile(swaggerPath)
 	if err != nil {
 		return nil, err
 	}
