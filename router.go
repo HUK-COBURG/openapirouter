@@ -52,13 +52,14 @@ func (router *Router) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 	}
 	handler, ok := router.implementations[route]
 	if ok {
-		err = openapi3filter.ValidateRequest(context.Background(), &openapi3filter.RequestValidationInput{
+		validationInput := &openapi3filter.RequestValidationInput{
 			Request:     request,
 			PathParams:  pathParams,
 			QueryParams: request.URL.Query(),
 			Route:       route,
 			Options:     handler.options,
-		})
+		}
+		err = openapi3filter.ValidateRequest(request.Context(), validationInput)
 		if err != nil {
 			switch typedErr := err.(type) {
 			case *openapi3filter.RequestError:
@@ -75,6 +76,7 @@ func (router *Router) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 			response.write(writer)
 			return
 		}
+		request = validationInput.Request
 		ctx := context.WithValue(request.Context(), pathParamsKey, pathParams)
 		handler.ServeHTTP(writer, request.WithContext(ctx))
 	} else {
