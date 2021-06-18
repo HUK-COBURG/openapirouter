@@ -2,6 +2,7 @@ package openapirouter
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 )
@@ -27,7 +28,7 @@ func (response *Response) write(writer http.ResponseWriter) {
 	case string:
 		writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		writer.WriteHeader(response.StatusCode)
-		_, err = writer.Write([]byte(data))
+		_, err = io.WriteString(writer, data)
 	default:
 		if data != nil {
 			writer.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -35,7 +36,7 @@ func (response *Response) write(writer http.ResponseWriter) {
 			err = json.NewEncoder(writer).Encode(response.Body)
 		} else {
 			writer.WriteHeader(response.StatusCode)
-			_, err = writer.Write(make([]byte, 0))
+			_, err = io.WriteString(writer, "")
 		}
 	}
 	if err != nil {
