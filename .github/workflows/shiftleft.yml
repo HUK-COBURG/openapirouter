@@ -17,6 +17,8 @@ jobs:
         go-version: '^1.14'
     - name: Build
       run: |
+        go get github.com/getkin/kin-openapi/openapi3@v0.63.0
+        go get github.com/getkin/kin-openapi/routers/gorillamux@v0.63.0
         go mod download github.com/getkin/kin-openapi
         go build ./...
     - name: Download ShiftLeft CLI
