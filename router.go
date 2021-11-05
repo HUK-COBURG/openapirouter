@@ -16,7 +16,7 @@ import (
 type Router struct {
 	baseRouter      routers.Router
 	errMapper       *errorMapper
-	implementations map[*routers.Route]requestHandler
+	implementations map[routers.Route]requestHandler
 }
 
 // NewRouter creates a new Router with the path of a OpenAPI specification file in YAML or JSON format.
@@ -32,7 +32,7 @@ func NewRouter(swaggerPath string) (*Router, error) {
 	return &Router{
 		baseRouter:      router,
 		errMapper:       &errorMapper{errorMapping: make(map[reflect.Type]*HTTPError)},
-		implementations: make(map[*routers.Route]requestHandler),
+		implementations: make(map[routers.Route]requestHandler),
 	}, nil
 }
 
@@ -50,7 +50,7 @@ func (router *Router) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 		response.write(writer)
 		return
 	}
-	handler, ok := router.implementations[route]
+	handler, ok := router.implementations[*route]
 	if ok {
 		validationInput := &openapi3filter.RequestValidationInput{
 			Request:     request,
@@ -113,7 +113,7 @@ func (router *Router) AddRequestHandlerWithAuthFunc(method string, path string, 
 		options.AuthenticationFunc = authFunc
 	}
 
-	router.implementations[route] = requestHandler{
+	router.implementations[*route] = requestHandler{
 		errMapper:       router.errMapper,
 		handlerFunction: handleFunc,
 		options:         options,

@@ -239,6 +239,50 @@ func TestRouter_POSTInvalidData(t *testing.T) {
 	}
 }
 
+func TestRouter_POSTandGETSamePath(t *testing.T) {
+	//given
+	router, server := getRouterAndServer()
+	defer server.Close()
+	postCalled := false
+	getCalled := false
+	sendData := TestData{
+		Data: "test",
+	}
+	dataBytes, _ := json.Marshal(&sendData)
+	router.AddRequestHandler(http.MethodPost, "/test", func(_ *http.Request, _ map[string]string) (*Response, error) {
+		postCalled = true
+		return &Response{
+			StatusCode: http.StatusNoContent,
+		}, nil
+	})
+	router.AddRequestHandler(http.MethodGet, "/test", func(_ *http.Request, _ map[string]string) (*Response, error) {
+		getCalled = true
+		return &Response{
+			StatusCode: http.StatusOK,
+			Body: &TestData{
+				Data: "test",
+			},
+		}, nil
+	})
+
+	// when
+	postResponse, postErr := server.Client().Post(server.URL+"/test", "application/json", bytes.NewReader(dataBytes))
+	getResponse, getErr := server.Client().Get(server.URL + "/test")
+
+	// then
+	assert.Nil(t, postErr)
+	if assert.NotNil(t, postResponse) {
+		assert.True(t, postCalled)
+		assert.Equal(t, http.StatusNoContent, postResponse.StatusCode)
+	}
+
+	assert.Nil(t, getErr)
+	if assert.NotNil(t, getResponse) {
+		assert.True(t, getCalled)
+		assert.Equal(t, http.StatusOK, getResponse.StatusCode)
+	}
+}
+
 func TestRouter_InvalidPath(t *testing.T) {
 	// given
 	_, server := getRouterAndServer()
