@@ -17,7 +17,12 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
-
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '1.17'
+    - name: Build
+      run: |
+        go build ./...
     - name: Download the ShiftLeft CLI and set permissions
       run: |
         curl https://cdn.shiftleft.io/download/sl > ${GITHUB_WORKSPACE}/sl && chmod a+rx ${GITHUB_WORKSPACE}/sl
@@ -28,11 +33,7 @@ jobs:
       with:
         java-version: 1.8
 
-    - name: Package with Maven
-      run: mvn clean package
-
-    - name: NextGen Static Analysis
-      run: ${GITHUB_WORKSPACE}/sl analyze --app ShiftLeftJava --tag branch=${{ github.head_ref || steps.extract_branch.outputs.branch }} --vcs-prefix-correction "io/shiftleft=src/main/java/" --java $(pwd)/target/yourJarFileName.jar
-
+    - name: Analyze application with ShiftLeft
+      run: ${GITHUB_WORKSPACE}/sl analyze --app ShiftLeftGo --tag branch=${{ github.head_ref || steps.extract_branch.outputs.branch }} --go $(pwd)
       env:
         SHIFTLEFT_ACCESS_TOKEN: ${{ secrets.SHIFTLEFT_ACCESS_TOKEN }}
