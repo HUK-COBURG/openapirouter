@@ -1,4 +1,3 @@
----
 # This workflow integrates ShiftLeft NG SAST with GitHub
 # Visit https://docs.shiftleft.io for help
 name: ShiftLeft
@@ -6,55 +5,34 @@ name: ShiftLeft
 on:
   pull_request:
   workflow_dispatch:
-
+  push:
+    # We recommend triggering a scan when merging to your default branch
+    # as a best practice, especially if you'd like to compare the results
+    # of two scans (e.g., a feature branch against the default branch)
+    branches:
+      - main
+      - master
 jobs:
-  NextGen-Static-Analysis:
-    runs-on: ubuntu-latest
+  ngsast-build:
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-go@v2
-      with:
-        go-version: '^1.14'
-    - name: Build
-      run: |
-        go get github.com/getkin/kin-openapi/openapi3@v0.63.0
-        go get github.com/getkin/kin-openapi/routers/gorillamux@v0.63.0
-        go mod download github.com/getkin/kin-openapi
-        go build ./...
-    - name: Download ShiftLeft CLI
+
+    - name: Download the ShiftLeft CLI and set permissions
       run: |
         curl https://cdn.shiftleft.io/download/sl > ${GITHUB_WORKSPACE}/sl && chmod a+rx ${GITHUB_WORKSPACE}/sl
-    - name: Extract branch name
-      shell: bash
-      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-      id: extract_branch
+
+    # ShiftLeft requires Java 1.8
+    - name: Set up Java
+      uses: actions/setup-java@v1.4.3
+      with:
+        java-version: 1.8
+
+    - name: Package with Maven
+      run: mvn clean package
+
     - name: NextGen Static Analysis
-      run: |
-        ${GITHUB_WORKSPACE}/sl --version
-        ${GITHUB_WORKSPACE}/sl analyze --wait --app openapirouter --tag branch=${{ github.head_ref || steps.extract_branch.outputs.branch }} --go --cpg $(pwd)
+      run: ${GITHUB_WORKSPACE}/sl analyze --app ShiftLeftJava --tag branch=${{ github.head_ref || steps.extract_branch.outputs.branch }} --vcs-prefix-correction "io/shiftleft=src/main/java/" --java $(pwd)/target/yourJarFileName.jar
+
       env:
         SHIFTLEFT_ACCESS_TOKEN: ${{ secrets.SHIFTLEFT_ACCESS_TOKEN }}
-        
-   
-  ## Uncomment the following section to enable build rule checking and enforcing.
-  #Build-Rules: 
-    #runs-on: ubuntu-latest
-    #needs: NextGen-Static-Analysis
-    #steps:
-    #- uses: actions/checkout@v2
-    #- name: Download ShiftLeft CLI
-    #  run: |
-    #    curl https://cdn.shiftleft.io/download/sl > ${GITHUB_WORKSPACE}/sl && chmod a+rx ${GITHUB_WORKSPACE}/sl
-    #- name: Validate Build Rules
-    #  run: |
-    #    ${GITHUB_WORKSPACE}/sl check-analysis --app openapirouter \
-    #       --source 'tag.branch=${{ github.event.pull_request.base.ref }}' \
-    #       --target "tag.branch=${{ github.head_ref || steps.extract_branch.outputs.branch }}" \
-    #       --report \
-    #       --github-pr-number=${{github.event.number}} \
-    #       --github-pr-user=${{ github.repository_owner }} \
-    #       --github-pr-repo=${{ github.event.repository.name }} \
-    #       --github-token=${{ secrets.GITHUB_TOKEN }}
-    #  env:
-        #SHIFTLEFT_ACCESS_TOKEN: ${{ secrets.SHIFTLEFT_ACCESS_TOKEN }}
-        
