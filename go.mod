@@ -6,5 +6,5 @@ require (
 	github.com/getkin/kin-openapi v0.108.0
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 )
